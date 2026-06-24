@@ -1,0 +1,11 @@
+/* docs/.vitepress/theme/tokens.css */
+:root {
+  /* Primary palette derived from app's dark theme */
+  --color-primary: #6366f1; /* Indigo-500 */
+  --color-primary-light: #a855f7; /* Indigo-600 */
+  --color-bg: #020617; /* Slate-950 */
+  --color-bg-light: #f8fafc; /* Slate-50 */
+  --color-text: #f8fafc;
+  --color-text-muted: #94a3b8;
+  --font-sans: 'Inter', 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}

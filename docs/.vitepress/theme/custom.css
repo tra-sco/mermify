@@ -1,0 +1,93 @@
+/* docs/.vitepress/theme/custom.css */
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/inter/700.css";
+@import "@fontsource/outfit/400.css";
+@import "@fontsource/outfit/600.css";
+@import "@fontsource/outfit/700.css";
+@import "@fontsource/outfit/800.css";
+@import "@fontsource/outfit/900.css";
+
+@import "./tokens.css";
+
+/* Integrate premium design tokens into VitePress */
+:root {
+  --vp-c-brand-1: var(--color-primary);
+  --vp-c-brand-2: var(--color-primary-light);
+  --vp-font-family-base: var(--font-sans);
+}
+
+/* Unify backgrounds in dark mode to prevent visual gaps and mismatched panels */
+.dark {
+  --vp-c-bg: #020617;      /* Slate-950 (matching the app's dark bg) */
+  --vp-c-bg-alt: #020617;  /* Unify sidebar and main container backgrounds */
+  --vp-c-bg-elv: #0b1329;  /* Dropdowns and cards */
+}
+
+/* Glass panel styling for docs home hero */
+.VPHomeHero {
+  backdrop-filter: blur(12px) saturate(150%);
+  background: rgba(241, 245, 249, 0.7);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 12px;
+  padding: 2rem;
+}
+
+.dark .VPHomeHero {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Add subtle hover glow to buttons */
+.VPButton {
+  position: relative;
+  overflow: hidden;
+}
+.VPButton::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: linear-gradient(to right, var(--color-primary), var(--color-primary-light));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: -1;
+}
+.VPButton:hover::after {
+  opacity: 0.15;
+  filter: blur(4px);
+}
+
+/* Custom header/logo title branding to match homepage */
+.VPNavBarTitle .title {
+  font-size: 14px !important;
+  font-weight: 900 !important;
+  text-transform: lowercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  transition: color 0.3s ease;
+}
+
+.VPNavBarTitle .title::after {
+  content: 'Docs';
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background-color: rgba(99, 102, 241, 0.15); /* Indigo-500/15 */
+  color: #818cf8; /* Indigo-400 */
+  border: 1px solid rgba(99, 102, 241, 0.2); /* Indigo-500/20 */
+  text-transform: none; /* Keep "Docs" capitalized */
+  letter-spacing: normal;
+  line-height: 1;
+}
+
+/* Ensure logo size and margins match the homepage look */
+.VPNavBarTitle .logo {
+  height: 40px !important;
+  width: 40px !important;
+  max-height: none !important;
+  margin-right: 0.75rem;
+}

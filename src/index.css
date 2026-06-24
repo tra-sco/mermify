@@ -1,0 +1,201 @@
+@import "tailwindcss";
+
+/* Self-host Google Fonts locally for GDPR compliance */
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/inter/700.css";
+
+@import "@fontsource/outfit/400.css";
+@import "@fontsource/outfit/500.css";
+@import "@fontsource/outfit/600.css";
+@import "@fontsource/outfit/700.css";
+@import "@fontsource/outfit/800.css";
+@import "@fontsource/outfit/900.css";
+
+@layer utilities {
+  /* Premium Engineering Canvas Grid Pattern */
+  .bg-grid-pattern {
+    background-size: 24px 24px;
+    background-image: 
+      linear-gradient(to right, rgba(148, 163, 184, 0.04) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(148, 163, 184, 0.04) 1px, transparent 1px);
+    background-position: center;
+  }
+
+  /* Custom Premium Scrollbar for Monaco and Preview Columns */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.15);
+    border-radius: 9999px;
+    transition: background 0.2s ease;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(148, 163, 184, 0.35);
+  }
+}
+
+/* Glassmorphism Styles */
+.glass-panel {
+  background: rgba(15, 23, 42, 0.65);
+  --glass-blur: blur(16px);
+  --glass-saturate: saturate(180%);
+  -webkit-backdrop-filter: var(--glass-blur) var(--glass-saturate);
+  backdrop-filter: var(--glass-blur) var(--glass-saturate);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Dynamic Hover Glow effects */
+.hover-glow {
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-glow::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(to right, #6366f1, #a855f7);
+  opacity: 0;
+  z-index: -1;
+  transition: opacity 0.3s ease;
+}
+
+.hover-glow:hover::after {
+  opacity: 0.15;
+  filter: blur(4px);
+}
+
+/* Base style resets */
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #020617; /* Slate-950 */
+  color: #f8fafc; /* Slate-50 */
+  font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  overflow: hidden;
+}
+
+/* Overriding Mermaid's native error banner to make it silent since we render our own */
+.mermaidTooltip {
+  position: absolute;
+  text-align: center;
+  max-width: 200px;
+  padding: 6px;
+  font-family: inherit;
+  font-size: 11px;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  color: #94a3b8;
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+/* Interactive SVG Diagram Elements */
+.node, .flowchart-link, .edgeLabel {
+  cursor: pointer;
+}
+
+/* Node Hover highlight */
+.node:hover rect,
+.node:hover circle,
+.node:hover polygon,
+.node:hover path,
+.node:hover ellipse {
+  fill: #1e1b4b !important; /* Dark Indigo background */
+  stroke: #818cf8 !important; /* Lighter Indigo border */
+  stroke-width: 2px !important;
+  filter: drop-shadow(0 0 6px rgba(99, 102, 241, 0.4));
+  transition: fill 0.2s, stroke 0.2s, stroke-width 0.2s, filter 0.2s;
+}
+
+/* Edge Path Hover highlight */
+.flowchart-link {
+  transition: stroke 0.2s, stroke-width 0.2s, filter 0.2s;
+}
+
+.flowchart-link:hover {
+  stroke: #818cf8 !important; /* Indigo 400 */
+  stroke-width: 3.5px !important;
+  filter: drop-shadow(0 0 4px rgba(99, 102, 241, 0.5));
+}
+
+/* Edge Label Hover highlight */
+.edgeLabel rect {
+  transition: fill 0.2s, stroke 0.2s;
+}
+
+.edgeLabel:hover rect {
+  fill: #1e1b4b !important;
+  stroke: #818cf8 !important;
+}
+
+/* Dynamic connection drawing overlay animation */
+@keyframes link-dash {
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+
+.animate-link-dash {
+  animation: link-dash 0.8s linear infinite;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  15%, 45%, 75% { transform: translateX(-4px); }
+  30%, 60%, 90% { transform: translateX(4px); }
+}
+
+.animate-shake {
+  animation: shake 0.4s ease-in-out;
+}
+
+/* Premium light mode canvas grid pattern */
+.theme-light .bg-grid-pattern {
+  background-image: 
+    linear-gradient(to right, rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+}
+
+/* Light Mode Glassmorphism Override */
+.theme-light .glass-panel {
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* Light mode node hover overrides */
+.theme-light .node:hover rect,
+.theme-light .node:hover circle,
+.theme-light .node:hover polygon,
+.theme-light .node:hover path,
+.theme-light .node:hover ellipse {
+  fill: #e0e7ff !important;
+  stroke: #4f46e5 !important;
+  filter: drop-shadow(0 0 6px rgba(99, 102, 241, 0.2));
+}
+
+/* Light mode edge path hover overrides */
+.theme-light .flowchart-link:hover {
+  stroke: #4f46e5 !important;
+  filter: drop-shadow(0 0 4px rgba(99, 102, 241, 0.25));
+}
+
+/* Light mode edge label hover overrides */
+.theme-light .edgeLabel:hover rect {
+  fill: #e0e7ff !important;
+  stroke: #4f46e5 !important;
+}

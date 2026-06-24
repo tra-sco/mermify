@@ -1,0 +1,268 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 150" width="100%" height="150" style="background-color: rgba(2, 6, 23, 0.4); border: 1px solid rgba(71, 85, 105, 0.2); border-radius: 12px; font-family: sans-serif; select-none: none;">
+  <defs>
+    <marker
+      id="arrowhead2"
+      viewBox="0 0 10 10"
+      refX="6"
+      refY="5"
+      markerWidth="6"
+      markerHeight="6"
+      orient="auto-start-reverse"
+    >
+      <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#10b981" />
+    </marker>
+  </defs>
+
+  {/* Grid Background */}
+  <g opacity="0.1">
+    <path d="M 0,15 L 320,15 M 0,30 L 320,30 M 0,45 L 320,45 M 0,60 L 320,60 M 0,75 L 320,75 M 0,90 L 320,90 M 0,105 L 320,105 M 0,120 L 320,120 M 0,135 L 320,135" fill="none" stroke="#6366f1" stroke-width="0.5" />
+    <path d="M 15,0 L 15,150 M 30,0 L 30,150 M 45,0 L 45,150 M 60,0 L 60,150 M 75,0 L 75,150 M 90,0 L 90,150 M 105,0 L 105,150 M 120,0 L 120,150 M 135,0 L 135,150 M 150,0 L 150,150 M 165,0 L 165,150 M 180,0 L 180,150 M 195,0 L 195,150 M 210,0 L 210,150 M 225,0 L 225,150 M 240,0 L 240,150 M 255,0 L 255,150 M 270,0 L 270,150 M 285,0 L 285,150 M 300,0 L 300,150 M 315,0 L 315,150" fill="none" stroke="#6366f1" stroke-width="0.5" />
+  </g>
+
+  {/* Node A (Source) */}
+  <g transform="translate(30, 50)">
+    <rect
+      x="0"
+      y="0"
+      width="80"
+      height="40"
+      rx="8"
+      fill="#1e293b"
+      stroke="#475569"
+      stroke-width="1.5"
+    />
+    <text
+      x="40"
+      y="24"
+      fill="#f8fafc"
+      font-size="11"
+      font-weight="600"
+      text-anchor="middle"
+    >
+      Node A
+    </text>
+    {/* Socket */}
+    <circle
+      cx="40"
+      cy="40"
+      r="5"
+      fill="#10b981"
+      stroke="#ffffff"
+      stroke-width="1.5"
+      class="socket-pulse"
+    />
+  </g>
+
+  {/* Spawning target node shadow/dashed outline */}
+  <g transform="translate(210, 50)" class="spawn-outline-group">
+    <rect
+      x="0"
+      y="0"
+      width="80"
+      height="40"
+      rx="8"
+      fill="none"
+      stroke="#10b981"
+      stroke-width="2"
+      stroke-dasharray="4,4"
+    />
+    <text
+      x="40"
+      y="24"
+      fill="#10b981"
+      font-size="10"
+      font-weight="600"
+      text-anchor="middle"
+    >
+      + New Node
+    </text>
+  </g>
+
+  {/* Spelled target node (final spawned node) */}
+  <g transform="translate(210, 50)" class="spawn-final-group">
+    <rect
+      x="0"
+      y="0"
+      width="80"
+      height="40"
+      rx="8"
+      fill="#064e3b"
+      stroke="#10b981"
+      stroke-width="2"
+    />
+    <text
+      x="40"
+      y="24"
+      fill="#f8fafc"
+      font-size="11"
+      font-weight="600"
+      text-anchor="middle"
+    >
+      Node B
+    </text>
+  </g>
+
+  {/* Dynamic Dragging Line */}
+  <path
+    d="M 70 90 Q 140 130, 210 90"
+    fill="none"
+    stroke="#10b981"
+    stroke-width="2.5"
+    stroke-dasharray="5,5"
+    class="spawn-line-anim"
+    marker-end="url(#arrowhead2)"
+  />
+
+  {/* Cursor Element */}
+  <g class="cursor-spawn-anim">
+    {/* Pointer shape */}
+    <path
+      d="M0,0 L0,15 L4,11 L9,20 L12,19 L7,10 L13,10 Z"
+      fill="#ffffff"
+      stroke="#000000"
+      stroke-width="1.5"
+    />
+    {/* Click effect circle */}
+    <circle cx="0" cy="0" r="8" fill="none" stroke="#10b981" stroke-width="2" class="cursor-spawn-click-ring" />
+  </g>
+
+  <style>
+    /* Socket pulse */
+    @keyframes pulse {
+      0% { r: 4; opacity: 0.8; }
+      50% { r: 6; opacity: 1; }
+      100% { r: 4; opacity: 0.8; }
+    }
+    .socket-pulse {
+      animation: pulse 2s infinite ease-in-out;
+    }
+
+    /* Cursor movement for spawning node */
+    @keyframes moveSpawnCursor {
+      0% {
+        transform: translate(220px, 120px);
+      }
+      15% {
+        transform: translate(70px, 90px); /* Hover socket */
+      }
+      20% {
+        transform: translate(70px, 90px); /* Click Down */
+      }
+      50% {
+        transform: translate(230px, 110px); /* Drag to empty space */
+      }
+      65% {
+        transform: translate(230px, 110px); /* Release Click */
+      }
+      85%, 100% {
+        transform: translate(220px, 120px); /* Reset */
+      }
+    }
+
+    /* Ring pulse on click */
+    @keyframes clickRing {
+      0%, 18% {
+        opacity: 0;
+        transform: scale(0.5);
+      }
+      20% {
+        opacity: 1;
+        transform: scale(1);
+      }
+      30% {
+        opacity: 0;
+        transform: scale(2);
+      }
+      100% {
+        opacity: 0;
+      }
+    }
+
+    /* Line draw path animation */
+    @keyframes drawSpawnLine {
+      0%, 20% {
+        stroke-dashoffset: 80;
+        opacity: 0;
+      }
+      21% {
+        opacity: 1;
+      }
+      50% {
+        stroke-dashoffset: 0;
+        opacity: 1;
+      }
+      65% {
+        opacity: 1;
+      }
+      85% {
+        opacity: 1;
+      }
+      86%, 100% {
+        opacity: 0;
+      }
+    }
+
+    /* Spawn placeholder visibility */
+    @keyframes spawnPlaceholderShow {
+      0%, 40% {
+        opacity: 0;
+        transform: translate(210px, 50px) scale(0.9);
+      }
+      45%, 64% {
+        opacity: 1;
+        transform: translate(210px, 50px) scale(1);
+      }
+      65%, 100% {
+        opacity: 0;
+        transform: translate(210px, 50px) scale(0.9);
+      }
+    }
+
+    /* Spawning final node animation on click release */
+    @keyframes spawnFinalShow {
+      0%, 64% {
+        opacity: 0;
+        transform: translate(210px, 50px) scale(0.6);
+        visibility: hidden;
+      }
+      65% {
+        opacity: 1;
+        transform: translate(210px, 50px) scale(1.15);
+        visibility: visible;
+      }
+      70%, 85% {
+        opacity: 1;
+        transform: translate(210px, 50px) scale(1);
+        visibility: visible;
+      }
+      86%, 100% {
+        opacity: 0;
+        transform: translate(210px, 50px) scale(0.6);
+        visibility: hidden;
+      }
+    }
+
+    .cursor-spawn-anim {
+      animation: moveSpawnCursor 5s infinite ease-in-out;
+    }
+
+    .cursor-spawn-click-ring {
+      animation: clickRing 5s infinite ease-in-out;
+    }
+
+    .spawn-line-anim {
+      animation: drawSpawnLine 5s infinite ease-in-out;
+      stroke-dasharray: 6;
+    }
+
+    .spawn-outline-group {
+      animation: spawnPlaceholderShow 5s infinite ease-in-out;
+      transform-origin: center;
+    }
+
+    .spawn-final-group {
+      animation: spawnFinalShow 5s infinite ease-in-out;
+      transform-origin: center;
+    }
+  </style>
+</svg>

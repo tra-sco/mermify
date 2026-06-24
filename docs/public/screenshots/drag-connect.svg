@@ -1,0 +1,229 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 150" width="100%" height="150" style="background-color: rgba(2, 6, 23, 0.4); border: 1px solid rgba(71, 85, 105, 0.2); border-radius: 12px; font-family: sans-serif; select-none: none;">
+  <defs>
+    <linearGradient id="nodeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4f46e5" />
+      <stop offset="100%" stop-color="#6366f1" />
+    </linearGradient>
+    <marker
+      id="arrowhead"
+      viewBox="0 0 10 10"
+      refX="6"
+      refY="5"
+      markerWidth="6"
+      markerHeight="6"
+      orient="auto-start-reverse"
+    >
+      <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#6366f1" />
+    </marker>
+  </defs>
+
+  {/* Grid Background */}
+  <g opacity="0.1">
+    <path d="M 0,15 L 320,15 M 0,30 L 320,30 M 0,45 L 320,45 M 0,60 L 320,60 M 0,75 L 320,75 M 0,90 L 320,90 M 0,105 L 320,105 M 0,120 L 320,120 M 0,135 L 320,135" fill="none" stroke="#6366f1" stroke-width="0.5" />
+    <path d="M 15,0 L 15,150 M 30,0 L 30,150 M 45,0 L 45,150 M 60,0 L 60,150 M 75,0 L 75,150 M 90,0 L 90,150 M 105,0 L 105,150 M 120,0 L 120,150 M 135,0 L 135,150 M 150,0 L 150,150 M 165,0 L 165,150 M 180,0 L 180,150 M 195,0 L 195,150 M 210,0 L 210,150 M 225,0 L 225,150 M 240,0 L 240,150 M 255,0 L 255,150 M 270,0 L 270,150 M 285,0 L 285,150 M 300,0 L 300,150 M 315,0 L 315,150" fill="none" stroke="#6366f1" stroke-width="0.5" />
+  </g>
+
+  {/* Node A (Source) */}
+  <g transform="translate(30, 50)">
+    <rect
+      x="0"
+      y="0"
+      width="80"
+      height="40"
+      rx="8"
+      fill="#1e293b"
+      stroke="#475569"
+      stroke-width="1.5"
+    />
+    <text
+      x="40"
+      y="24"
+      fill="#f8fafc"
+      font-size="11"
+      font-weight="600"
+      text-anchor="middle"
+    >
+      Node A
+    </text>
+    {/* Socket */}
+    <circle
+      cx="40"
+      cy="40"
+      r="5"
+      fill="#10b981"
+      stroke="#ffffff"
+      stroke-width="1.5"
+      class="socket-pulse"
+    />
+  </g>
+
+  {/* Node B (Target) */}
+  <g transform="translate(210, 50)">
+    <rect
+      x="0"
+      y="0"
+      width="80"
+      height="40"
+      rx="8"
+      fill="#1e293b"
+      stroke="#475569"
+      stroke-width="1.5"
+      class="target-node-rect-anim"
+    />
+    <text
+      x="40"
+      y="24"
+      fill="#f8fafc"
+      font-size="11"
+      font-weight="600"
+      text-anchor="middle"
+    >
+      Node B
+    </text>
+  </g>
+
+  {/* Dynamic Dragging Line */}
+  <path
+    d="M 70 90 Q 140 130, 200 90"
+    fill="none"
+    stroke="#10b981"
+    stroke-width="2.5"
+    stroke-dasharray="5,5"
+    class="drag-line-anim"
+    marker-end="url(#arrowhead)"
+  />
+
+  {/* Cursor Element */}
+  <g class="cursor-anim">
+    {/* Pointer shape */}
+    <path
+      d="M0,0 L0,15 L4,11 L9,20 L12,19 L7,10 L13,10 Z"
+      fill="#ffffff"
+      stroke="#000000"
+      stroke-width="1.5"
+    />
+    {/* Click effect circle */}
+    <circle cx="0" cy="0" r="8" fill="none" stroke="#10b981" stroke-width="2" class="cursor-click-ring" />
+  </g>
+
+  <style>
+    /* Socket pulse */
+    @keyframes pulse {
+      0% { r: 4; opacity: 0.8; }
+      50% { r: 6; opacity: 1; }
+      100% { r: 4; opacity: 0.8; }
+    }
+    .socket-pulse {
+      animation: pulse 2s infinite ease-in-out;
+    }
+
+    /* Cursor movement sequence */
+    @keyframes moveCursor {
+      0% {
+        transform: translate(220px, 120px);
+      }
+      15% {
+        transform: translate(70px, 90px); /* Hovering Node A socket */
+      }
+      20% {
+        transform: translate(70px, 90px); /* Click Down */
+      }
+      50% {
+        transform: translate(210px, 80px); /* Dragging to Node B */
+      }
+      65% {
+        transform: translate(210px, 80px); /* Release Click */
+      }
+      85%, 100% {
+        transform: translate(220px, 120px); /* Reset */
+      }
+    }
+
+    /* Ring pulse on click */
+    @keyframes clickRing {
+      0%, 18% {
+        opacity: 0;
+        transform: scale(0.5);
+      }
+      20% {
+        opacity: 1;
+        transform: scale(1);
+      }
+      30% {
+        opacity: 0;
+        transform: scale(2);
+      }
+      100% {
+        opacity: 0;
+      }
+    }
+
+    /* Line draw path animation */
+    @keyframes drawLine {
+      0%, 20% {
+        stroke-dashoffset: 80;
+        opacity: 0;
+      }
+      21% {
+        opacity: 1;
+      }
+      50% {
+        stroke-dashoffset: 0;
+        opacity: 1;
+      }
+      65% {
+        stroke: #6366f1;
+        stroke-dasharray: none;
+        opacity: 1;
+      }
+      85% {
+        opacity: 1;
+        stroke: #6366f1;
+      }
+      86%, 100% {
+        opacity: 0;
+      }
+    }
+
+    /* Node B receiving connection glow */
+    @keyframes glowTarget {
+      0%, 50% {
+        stroke: #475569;
+        fill: #1e293b;
+      }
+      55% {
+        stroke: #10b981;
+        fill: #064e3b;
+      }
+      65% {
+        stroke: #6366f1;
+        fill: #1e1b4b;
+      }
+      85% {
+        stroke: #6366f1;
+        fill: #1e1b4b;
+      }
+      95%, 100% {
+        stroke: #475569;
+        fill: #1e293b;
+      }
+    }
+
+    .cursor-anim {
+      animation: moveCursor 5s infinite ease-in-out;
+    }
+
+    .cursor-click-ring {
+      animation: clickRing 5s infinite ease-in-out;
+    }
+
+    .drag-line-anim {
+      animation: drawLine 5s infinite ease-in-out;
+      stroke-dasharray: 6;
+    }
+
+    .target-node-rect-anim {
+      animation: glowTarget 5s infinite ease-in-out;
+    }
+  </style>
+</svg>

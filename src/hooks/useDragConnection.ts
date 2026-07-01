@@ -57,6 +57,8 @@ export function useDragConnection({
     dragLinkTargetRef.current = dragLinkTarget;
   }, [dragLinkTarget]);
 
+  const dragStartPointerPosRef = useRef<{ x: number; y: number } | null>(null);
+
   const handleSocketPointerDown = useCallback((e: React.PointerEvent, sourceId: string) => {
     e.stopPropagation();
     const currentTarget = e.currentTarget as HTMLElement;
@@ -67,6 +69,8 @@ export function useDragConnection({
 
     const startX = sourceNode.x + sourceNode.width / 2;
     const startY = sourceNode.y + sourceNode.height / 2;
+
+    dragStartPointerPosRef.current = { x: e.clientX, y: e.clientY };
 
     setDragLinkSource(sourceId);
     setDragLinkCurrent({ x: startX, y: startY });
@@ -131,19 +135,33 @@ export function useDragConnection({
     const currentSource = dragLinkSourceRef.current;
     const currentTargetNode = dragLinkTargetRef.current;
 
-    if (currentSource && currentTargetNode) {
-      if (currentTargetNode === '__new_node__') {
+    // Check if pointer has barely moved (indicating a single click)
+    let isClick = false;
+    if (dragStartPointerPosRef.current) {
+      const moveX = e.clientX - dragStartPointerPosRef.current.x;
+      const moveY = e.clientY - dragStartPointerPosRef.current.y;
+      const distance = Math.hypot(moveX, moveY);
+      if (distance < 5) {
+        isClick = true;
+      }
+    }
+
+    if (currentSource) {
+      if (isClick || currentTargetNode === '__new_node__') {
         if (onConnectNewNode) {
           onConnectNewNode(currentSource);
         }
-      } else if (onConnectNodes) {
-        onConnectNodes(currentSource, currentTargetNode);
+      } else if (currentTargetNode) {
+        if (onConnectNodes) {
+          onConnectNodes(currentSource, currentTargetNode);
+        }
       }
     }
 
     setDragLinkSource(null);
     setDragLinkCurrent(null);
     setDragLinkTarget(null);
+    dragStartPointerPosRef.current = null;
   }, [onConnectNodes, onConnectNewNode]);
 
   return {

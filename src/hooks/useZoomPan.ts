@@ -26,13 +26,16 @@ export function useZoomPan(
     panRef.current = pan;
   }, [pan]);
 
+  // Track pointer down state without triggering re-renders
+  const isPointerDownRef = useRef(false);
+
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return; // Left click only
     const target = e.target as HTMLElement;
     // Disallow panning when interacting with buttons or overlays
     if (target.closest('button') || target.closest('.overlay-interactive')) return;
 
-    setIsDragging(true);
+    isPointerDownRef.current = true;
     hasDraggedRef.current = false;
     dragStartCoords.current = { x: e.clientX, y: e.clientY };
     dragStart.current = {
@@ -42,22 +45,28 @@ export function useZoomPan(
   }, []);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isDragging) return;
+    if (!isPointerDownRef.current) return;
 
     const dx = e.clientX - dragStartCoords.current.x;
     const dy = e.clientY - dragStartCoords.current.y;
     // Only classify as a drag action if movement exceeds jitter threshold
     if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
       hasDraggedRef.current = true;
+      if (!isDragging) {
+        setIsDragging(true);
+      }
     }
 
-    setPan({
-      x: e.clientX - dragStart.current.x,
-      y: e.clientY - dragStart.current.y,
-    });
+    if (hasDraggedRef.current) {
+      setPan({
+        x: e.clientX - dragStart.current.x,
+        y: e.clientY - dragStart.current.y,
+      });
+    }
   }, [isDragging]);
 
   const handleMouseUp = useCallback(() => {
+    isPointerDownRef.current = false;
     setIsDragging(false);
   }, []);
 

@@ -94,6 +94,31 @@ export function getElementMidpoint(el: Element): Point {
 }
 
 /**
+ * Calculates the exact midpoint along the stroke of an SVG path element
+ */
+export function getPathMidpoint(pathEl: SVGPathElement): Point {
+  try {
+    const totalLength = pathEl.getTotalLength();
+    const localPoint = pathEl.getPointAtLength(totalLength / 2);
+    const svgNode = pathEl.ownerSVGElement;
+    if (svgNode) {
+      const svgPoint = svgNode.createSVGPoint();
+      svgPoint.x = localPoint.x;
+      svgPoint.y = localPoint.y;
+      const matrix = pathEl.getScreenCTM();
+      if (matrix) {
+        const clientPoint = svgPoint.matrixTransform(matrix);
+        return { x: clientPoint.x, y: clientPoint.y };
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to calculate exact path midpoint:', e);
+  }
+  // Fallback to bounding box center
+  return getElementMidpoint(pathEl);
+}
+
+/**
  * Finds the closest candidate element from a list, using Euclidean distance from a target midpoint
  */
 export function findClosestElement(

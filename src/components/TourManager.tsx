@@ -47,8 +47,8 @@ const STEPS: StepConfig[] = [
     animation: <DragSpawnAnimation />,
   },
   {
-    title: 'Click Node or Edge to Edit ✏️',
-    description: 'Click any node or connection line directly in the preview to rename it, customize its shape, change arrow styles, or delete it instantly without manually writing markdown.',
+    title: 'Double-Click or Click to Edit ✏️',
+    description: 'Double-click any node or connection line to open the inline editor to rename it. A simple click opens the command palette to customize its shape/style, change arrows, or delete elements.',
     targetSelector: '[data-testid="preview-pane"]',
     position: 'left',
     animation: <ClickEditAnimation />,

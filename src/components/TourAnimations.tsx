@@ -242,7 +242,7 @@ export const ClickEditAnimation = memo(function ClickEditAnimation() {
 
       <svg width="320" height="150" viewBox="0 0 320 150" className="w-full h-full max-w-[320px]">
         {/* Node Center */}
-        <g transform="translate(115, 20)">
+        <g transform="translate(115, 45)">
           {/* Main Node */}
           <rect
             x="0"
@@ -268,6 +268,7 @@ export const ClickEditAnimation = memo(function ClickEditAnimation() {
             strokeDasharray="none"
             className="click-node-glow-ring"
           />
+          {/* Node Label Text */}
           <text
             x="45"
             y="24"
@@ -280,38 +281,80 @@ export const ClickEditAnimation = memo(function ClickEditAnimation() {
           >
             Node A
           </text>
-        </g>
 
-        {/* Modal Window Overlay */}
-        <g transform="translate(75, 75)" className="modal-anim-group">
-          {/* Backdrop glass panel */}
-          <rect
-            x="0"
-            y="0"
-            width="170"
-            height="65"
-            rx="8"
-            fill="#0f172a"
-            stroke="#334155"
-            strokeWidth="1.5"
-            className="modal-bg"
-          />
-          <text x="10" y="20" fill="#94a3b8" fontSize="9" fontWeight="600" fontFamily="sans-serif">
-            EDIT NODE PROPERTIES
-          </text>
-          {/* Text Input mock */}
-          <rect x="10" y="28" width="150" height="14" rx="3" fill="#1e293b" stroke="#475569" strokeWidth="1" />
-          <text x="15" y="38" fill="#f8fafc" fontSize="8" fontFamily="sans-serif" className="modal-input-text">
-            Node A
-          </text>
-          {/* Cursor text line indicator */}
-          <line x1="45" y1="31" x2="45" y2="39" stroke="#6366f1" strokeWidth="1.5" className="modal-cursor-line" />
+          {/* Inline Input Field Overlay (visible on double-click) */}
+          <g transform="translate(5, 6)" className="inline-input-anim-group">
+            <rect
+              x="0"
+              y="0"
+              width="80"
+              height="28"
+              rx="4"
+              fill="#0f172a"
+              stroke="#6366f1"
+              strokeWidth="1.5"
+            />
+            <text
+              x="8"
+              y="18"
+              fill="#f8fafc"
+              fontSize="10"
+              fontFamily="sans-serif"
+              className="inline-input-text"
+            >
+              Node A
+            </text>
+            {/* Blinking typing cursor */}
+            <line x1="72" y1="8" x2="72" y2="20" stroke="#6366f1" strokeWidth="1.5" className="inline-cursor-line" />
+          </g>
 
-          {/* Preset Buttons */}
-          <g transform="translate(10, 48)">
-            <rect x="0" y="0" width="40" height="12" rx="2" fill="#312e81" stroke="#4f46e5" strokeWidth="1" />
-            <text x="20" y="8" fill="#a5b4fc" fontSize="7" textAnchor="middle" fontWeight="bold" fontFamily="sans-serif">
-              Save
+          {/* Floating Action Command Palette (visible on single-click) */}
+          <g transform="translate(-20, -32)" className="palette-anim-group">
+            {/* Backdrop pill */}
+            <rect
+              x="0"
+              y="0"
+              width="130"
+              height="24"
+              rx="12"
+              fill="#0f172a"
+              stroke="#334155"
+              strokeWidth="1.5"
+            />
+            {/* Shape Trigger button */}
+            <rect
+              x="3"
+              y="3"
+              width="60"
+              height="18"
+              rx="9"
+              fill="#1e293b"
+              className="palette-shape-btn"
+            />
+            <text
+              x="33"
+              y="15"
+              fill="#f8fafc"
+              fontSize="8"
+              fontWeight="bold"
+              textAnchor="middle"
+              fontFamily="sans-serif"
+            >
+              Shape
+            </text>
+            {/* Divider */}
+            <line x1="65" y1="4" x2="65" y2="20" stroke="#334155" strokeWidth="1" />
+            {/* Delete button */}
+            <text
+              x="97"
+              y="15"
+              fill="#94a3b8"
+              fontSize="8"
+              fontWeight="bold"
+              textAnchor="middle"
+              fontFamily="sans-serif"
+            >
+              Delete
             </text>
           </g>
         </g>
@@ -325,197 +368,275 @@ export const ClickEditAnimation = memo(function ClickEditAnimation() {
             stroke="#000000"
             strokeWidth="1.5"
           />
-          {/* Click effect circle */}
-          <circle cx="0" cy="0" r="8" fill="none" stroke="#6366f1" strokeWidth="2" className="cursor-edit-click-ring" />
+          {/* Ripple 1 (Primary Indigo) */}
+          <circle cx="0" cy="0" r="1" fill="none" stroke="#6366f1" strokeWidth="2" className="cursor-ripple-1" />
+          {/* Ripple 2 (Secondary Bright White) */}
+          <circle cx="0" cy="0" r="1" fill="none" stroke="#ffffff" strokeWidth="2.5" className="cursor-ripple-2" />
         </g>
       </svg>
 
       <style>{`
-        /* Cursor movement */
+        /* Cursor movement over 8 seconds cycle */
         @keyframes moveEditCursor {
           0% {
-            transform: translate(250px, 110px);
+            transform: translate(250px, 130px);
           }
-          15% {
-            transform: translate(160px, 40px); /* Hover node center */
+          12% {
+            transform: translate(160px, 65px); /* Hover node center */
           }
-          20% {
-            transform: translate(160px, 40px); /* Click node */
+          22% {
+            transform: translate(160px, 65px); /* Double click center finishes */
           }
-          40% {
-            transform: translate(140px, 110px); /* Move into Modal text box */
+          26% {
+            transform: translate(190px, 85px); /* Move slightly aside to reveal typing */
           }
-          45% {
-            transform: translate(140px, 110px); /* Click input */
+          48% {
+            transform: translate(190px, 85px);
           }
-          75% {
-            transform: translate(110px, 130px); /* Move to Save button */
+          54% {
+            transform: translate(160px, 65px); /* Hover node center again */
           }
-          80% {
-            transform: translate(110px, 130px); /* Click Save button */
+          62% {
+            transform: translate(160px, 65px); /* Single click center */
           }
-          95%, 100% {
-            transform: translate(250px, 110px); /* Reset */
+          68% {
+            transform: translate(148px, 35px); /* Move to Shape button inside command palette */
+          }
+          74% {
+            transform: translate(148px, 35px); /* Click Shape button */
+          }
+          85%, 100% {
+            transform: translate(250px, 130px); /* Move back to home position */
           }
         }
 
-        @keyframes cursorEditClickRing {
-          0%, 18% {
+        /* Optimized Mouse Ripple Effects (Single & Double Click) */
+        @keyframes ripple1Effect {
+          /* Double click 1st tap (at 15%) */
+          0%, 13% {
+            transform: scale(0);
             opacity: 0;
-            transform: scale(0.5);
+          }
+          15% {
+            opacity: 0.85;
+          }
+          17% {
+            transform: scale(22);
+            opacity: 0;
+          }
+          /* Double click 2nd tap (at 18%) */
+          18% {
+            transform: scale(0);
+            opacity: 0;
           }
           20% {
-            opacity: 1;
-            transform: scale(1);
+            opacity: 0.85;
           }
-          21%, 43% {
+          22% {
+            transform: scale(22);
             opacity: 0;
           }
-          45% {
-            opacity: 1;
-            transform: scale(1);
-          }
-          46%, 78% {
+          /* Single click on node (at 57.5%) */
+          23%, 55% {
+            transform: scale(0);
             opacity: 0;
           }
-          80% {
-            opacity: 1;
-            transform: scale(1);
+          57.5% {
+            opacity: 0.85;
           }
-          90%, 100% {
+          60% {
+            transform: scale(22);
+            opacity: 0;
+          }
+          /* Single click on shape (at 72.5%) */
+          61%, 70% {
+            transform: scale(0);
+            opacity: 0;
+          }
+          72.5% {
+            opacity: 0.85;
+          }
+          75% {
+            transform: scale(22);
+            opacity: 0;
+          }
+          76%, 100% {
+            transform: scale(0);
+            opacity: 0;
+          }
+        }
+
+        @keyframes ripple2Effect {
+          /* Double click 2nd tap (at 18%, white color shift) */
+          0%, 17.5% {
+            transform: scale(0);
+            opacity: 0;
+          }
+          20% {
+            opacity: 0.95;
+          }
+          22.5% {
+            transform: scale(18);
+            opacity: 0;
+          }
+          23%, 100% {
+            transform: scale(0);
             opacity: 0;
           }
         }
 
         /* Node glow state changes */
         @keyframes nodeGlowBorder {
-          0%, 15% {
+          0%, 10% {
             opacity: 0;
           }
-          20%, 80% {
+          12%, 80% {
             opacity: 1;
           }
-          85%, 100% {
+          82%, 100% {
             opacity: 0;
           }
         }
 
-        /* Modal popup animation */
-        @keyframes modalPopup {
-          0%, 20% {
+        @keyframes nodeGlowShapeSync {
+          0%, 72% {
+            rx: 11;
+          }
+          73%, 82% {
+            rx: 23;
+          }
+          83%, 100% {
+            rx: 11;
+          }
+        }
+
+        /* Inline input field group transition (visible 22% to 47%) */
+        @keyframes inlineInputPopup {
+          0%, 21% {
             opacity: 0;
-            transform: translate(75px, 90px) scale(0.9);
             visibility: hidden;
           }
-          25%, 80% {
+          22%, 47% {
             opacity: 1;
-            transform: translate(75px, 75px) scale(1);
             visibility: visible;
           }
-          85%, 100% {
+          48%, 100% {
             opacity: 0;
-            transform: translate(75px, 90px) scale(0.9);
             visibility: hidden;
           }
         }
 
-        /* Input typing text animation */
-        @keyframes typeText {
-          0%, 45% {
-            textContent: "Node A";
+        /* Command Palette popup transition (visible 58% to 79%) */
+        @keyframes palettePopup {
+          0%, 57% {
+            opacity: 0;
+            transform: translate(-20px, -20px) scale(0.9);
+            visibility: hidden;
           }
-          50% {
-            textContent: "Node";
+          58%, 79% {
+            opacity: 1;
+            transform: translate(-20px, -32px) scale(1);
+            visibility: visible;
           }
-          55% {
-            textContent: "Node E";
+          80%, 100% {
+            opacity: 0;
+            transform: translate(-20px, -20px) scale(0.9);
+            visibility: hidden;
           }
-          60% {
-            textContent: "Node Edi";
+        }
+
+        /* Command Palette Shape button clicked/active indicator */
+        @keyframes paletteShapeBtnActive {
+          0%, 70% {
+            fill: #1e293b;
           }
-          65%, 80% {
-            textContent: "Node Edited";
+          72%, 79% {
+            fill: #4f46e5;
           }
-          85%, 100% {
-            textContent: "Node A";
+          80%, 100% {
+            fill: #1e293b;
           }
+        }
+
+        /* Typing text effect using CSS content swaps */
+        @keyframes inlineTypeTextCSS {
+          0%, 24% { content: "Node A"; }
+          29% { content: "Node"; }
+          34% { content: "Node Ed"; }
+          39% { content: "Node Edit"; }
+          44%, 100% { content: "Node Edited"; }
         }
 
         /* Node text sync edit */
-        @keyframes nodeTextSync {
-          0%, 80% {
-            textContent: "Node A";
-          }
-          81%, 100% {
-            textContent: "Node Edited";
-          }
+        @keyframes nodeTextSyncCSS {
+          0%, 47% { content: "Node A"; }
+          48%, 84% { content: "Node Edited"; }
+          85%, 100% { content: "Node A"; }
         }
 
-        /* Save node shape change visual sync */
+        /* Node shape change visual sync */
         @keyframes nodeShapeSync {
-          0%, 80% {
+          0%, 72% {
             rx: 8;
             stroke: #475569;
           }
-          81%, 95% {
+          73%, 84% {
             rx: 20; /* Stadium/Capsule shape */
             stroke: #818cf8;
+          }
+          85%, 100% {
+            rx: 8;
+            stroke: #475569;
           }
         }
 
         .cursor-edit-anim {
-          animation: moveEditCursor 6s infinite ease-in-out;
+          animation: moveEditCursor 8s infinite ease-in-out;
         }
 
-        .cursor-edit-click-ring {
-          animation: cursorEditClickRing 6s infinite ease-in-out;
-          transform-origin: center;
+        .cursor-ripple-1 {
+          animation: ripple1Effect 8s infinite ease-in-out;
+          transform-origin: 0 0;
+        }
+
+        .cursor-ripple-2 {
+          animation: ripple2Effect 8s infinite ease-in-out;
+          transform-origin: 0 0;
         }
 
         .click-node-glow-ring {
-          animation: nodeGlowBorder 6s infinite ease-in-out;
+          animation: nodeGlowBorder 8s infinite ease-in-out, nodeGlowShapeSync 8s infinite ease-in-out;
         }
 
-        .modal-anim-group {
-          animation: modalPopup 6s infinite ease-in-out;
+        .inline-input-anim-group {
+          animation: inlineInputPopup 8s infinite ease-in-out;
         }
 
-        .modal-input-text::after {
-          content: 'Node A';
+        .palette-anim-group {
+          animation: palettePopup 8s infinite ease-in-out;
         }
 
-        /* Typing text effect using CSS content swaps */
-        .modal-input-text {
-          animation: typeTextCSS 6s infinite steps(1);
+        .palette-shape-btn {
+          animation: paletteShapeBtnActive 8s infinite ease-in-out;
+        }
+
+        .inline-input-text {
+          animation: inlineTypeTextCSS 8s infinite steps(1);
         }
 
         .click-node-text {
-          animation: nodeTextSyncCSS 6s infinite steps(1);
+          animation: nodeTextSyncCSS 8s infinite steps(1);
         }
 
         .click-node-rect {
-          animation: nodeShapeSync 6s infinite ease-in-out;
-        }
-
-        @keyframes typeTextCSS {
-          0%, 48% { content: "Node A"; }
-          52% { content: "Node"; }
-          56% { content: "Node Ed"; }
-          60% { content: "Node Edit"; }
-          64%, 80% { content: "Node Edited"; }
-          84%, 100% { content: "Node A"; }
-        }
-
-        @keyframes nodeTextSyncCSS {
-          0%, 80% { content: "Node A"; }
-          81%, 95% { content: "Node Edited"; }
+          animation: nodeShapeSync 8s infinite ease-in-out;
         }
 
         /* Blink vertical bar indicator cursor */
         @keyframes cursorBlink {
           50% { opacity: 0; }
         }
-        .modal-cursor-line {
+        .inline-cursor-line {
           animation: cursorBlink 0.8s infinite;
         }
       `}</style>

@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Editor } from './components/Editor';
 import { Preview } from './components/Preview';
-import type { OverlayNode, OverlayEdge } from './components/Preview';
+import type { OverlayNode } from './components/Preview';
 import { PRESETS } from './constants/presets';
 import type { PresetKey } from './constants/presets';
 import { decompressCode } from './utils/urlCompression';
@@ -11,17 +11,12 @@ import {
   addNodeConnection,
   deleteNodeFromMermaid,
   updateConnectionInMermaid,
-  deleteConnectionFromMermaid
+  deleteConnectionFromMermaid,
+  detectNodeShapeAndLabel,
+  detectConnectionStyle
 } from './utils/mermaidParser';
 import { Undo2, Redo2, Sun, Moon, HelpCircle } from 'lucide-react';
 import { TourManager } from './components/TourManager';
-
-const EditNodeModal = lazy(() =>
-  import('./components/EditNodeModal').then((m) => ({ default: m.EditNodeModal }))
-);
-const EditEdgeModal = lazy(() =>
-  import('./components/EditEdgeModal').then((m) => ({ default: m.EditEdgeModal }))
-);
 
 // Extract initial code from URL parameters or fallback to default preset
 const getInitialCode = (): string => {
@@ -42,9 +37,9 @@ const getInitialCode = (): string => {
 
 export default function App() {
   const [editingNode, setEditingNode] = useState<OverlayNode | null>(null);
-  const [editingEdge, setEditingEdge] = useState<OverlayEdge | null>(null);
+  const [newNodeIdToEdit, setNewNodeIdToEdit] = useState<string | null>(null);
 
-  const isEditingActive = !!editingNode || !!editingEdge;
+  const isEditingActive = !!editingNode;
 
   // Diagram document state hook
   const {
@@ -54,7 +49,6 @@ export default function App() {
     undo,
     redo,
     history,
-    setHistory,
   } = useDiagramState(getInitialCode(), isEditingActive);
 
   const [error, setError] = useState<string | null>(null);
@@ -99,37 +93,39 @@ export default function App() {
   };
 
   // Node real-time label update callback
-  const handleNodeLabelChange = (newLabel: string) => {
-    if (!editingNode) return;
+  const handleNodeLabelChange = useCallback((nodeId: string, newLabel: string) => {
+    setEditingNode((prev) => (prev && prev.id === nodeId ? { ...prev, label: newLabel } : prev));
 
-    // Do not auto-save to code if the label is empty to prevent syntax errors
     if (newLabel.trim() === '') {
-      setEditingNode((prev) => (prev ? { ...prev, label: newLabel } : null));
       return;
     }
 
+    const current = detectNodeShapeAndLabel(code, nodeId);
+    const shapeId = current ? current.shapeId : 'rectangle';
+
     const updatedCode = updateNodeLabelAndShape(
       code,
-      editingNode.id,
+      nodeId,
       newLabel,
-      editingNode.shapeId || 'rectangle'
+      shapeId
     );
     updateCode(updatedCode, false);
-    setEditingNode((prev) => (prev ? { ...prev, label: newLabel } : null));
-  };
+  }, [code, updateCode]);
 
-  // Node shape update callback (discrete action, closes modal)
-  const handleNodeShapeChange = (newShapeId: string) => {
-    if (!editingNode) return;
+  // Node shape update callback
+  const handleNodeShapeChange = useCallback((nodeId: string, newShapeId: string) => {
+    const current = detectNodeShapeAndLabel(code, nodeId);
+    const label = current ? current.label : `Node ${nodeId}`;
+
     const updatedCode = updateNodeLabelAndShape(
       code,
-      editingNode.id,
-      editingNode.label,
+      nodeId,
+      label,
       newShapeId
     );
     updateCode(updatedCode, true);
     setEditingNode(null);
-  };
+  }, [code, updateCode]);
 
   // Node deletion callback
   const handleDeleteNodeById = useCallback((nodeId: string) => {
@@ -140,76 +136,36 @@ export default function App() {
     }
   }, [code, editingNode, updateCode]);
 
-  const handleDeleteNode = () => {
-    if (!editingNode) return;
-    handleDeleteNodeById(editingNode.id);
-  };
-
-  // Connection real-time label update callback
-  const handleEdgeLabelChange = (newLabel: string) => {
-    if (!editingEdge) return;
+  // Connection inline label update callback
+  const handleEdgeLabelChangeInline = useCallback((sourceId: string, targetId: string, newLabel: string) => {
+    const currentStyle = detectConnectionStyle(code, sourceId, targetId);
     const updatedCode = updateConnectionInMermaid(
       code,
-      editingEdge.sourceId,
-      editingEdge.targetId,
+      sourceId,
+      targetId,
       newLabel,
-      editingEdge.style || '-->'
+      currentStyle || '-->'
     );
     updateCode(updatedCode, false);
-    setEditingEdge((prev) => (prev ? { ...prev, label: newLabel } : null));
-  };
+  }, [code, updateCode]);
 
-  // Connection style update callback (discrete action, closes modal)
-  const handleEdgeStyleChange = (newStyleId: string) => {
-    if (!editingEdge) return;
+  // Connection inline style update callback
+  const handleEdgeStyleChangeInline = useCallback((sourceId: string, targetId: string, newStyle: string, currentLabel: string) => {
     const updatedCode = updateConnectionInMermaid(
       code,
-      editingEdge.sourceId,
-      editingEdge.targetId,
-      editingEdge.label,
-      newStyleId
+      sourceId,
+      targetId,
+      currentLabel,
+      newStyle
     );
     updateCode(updatedCode, true);
-    setEditingEdge(null);
-  };
+  }, [code, updateCode]);
 
   // Connection deletion callback
   const handleDeleteConnectionByEnds = useCallback((sourceId: string, targetId: string) => {
     const updatedCode = deleteConnectionFromMermaid(code, sourceId, targetId);
     updateCode(updatedCode, true);
-    if (editingEdge?.sourceId === sourceId && editingEdge?.targetId === targetId) {
-      setEditingEdge(null);
-    }
-  }, [code, editingEdge, updateCode]);
-
-  const handleDeleteConnection = () => {
-    if (!editingEdge) return;
-    handleDeleteConnectionByEnds(editingEdge.sourceId, editingEdge.targetId);
-  };
-
-  const handleCloseNodeModal = () => {
-    setHistory((prev) => {
-      if (prev.present === code) return prev;
-      return {
-        past: [...prev.past, prev.present],
-        present: code,
-        future: [],
-      };
-    });
-    setEditingNode(null);
-  };
-
-  const handleCloseEdgeModal = () => {
-    setHistory((prev) => {
-      if (prev.present === code) return prev;
-      return {
-        past: [...prev.past, prev.present],
-        present: code,
-        future: [],
-      };
-    });
-    setEditingEdge(null);
-  };
+  }, [code, updateCode]);
 
   const handleConnectNewNode = (sourceId: string) => {
     // Generate sequential target ID
@@ -231,6 +187,7 @@ export default function App() {
       'rectangle'
     );
     updateCode(updatedCode, true);
+    setNewNodeIdToEdit(targetId);
 
     // Auto-trigger editing of the newly created node
     setTimeout(() => {
@@ -257,6 +214,7 @@ export default function App() {
     const newLine = `    ${nodeId}[${nodeLabel}]`;
     const updatedCode = code.trim() ? `${code.trimEnd()}\n${newLine}\n` : `flowchart TD\n${newLine}\n`;
     updateCode(updatedCode, true);
+    setNewNodeIdToEdit(nodeId);
 
     setTimeout(() => {
       setEditingNode({
@@ -373,6 +331,32 @@ export default function App() {
           {/* Theme & Help Buttons */}
           <div className={`w-px h-6 transition-colors duration-300 ${isLight ? 'bg-slate-200' : 'bg-slate-800'}`} />
 
+          <a
+            href="https://github.com/tra-sco/mermify"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`p-2 rounded-xl border transition-all active:scale-95 cursor-pointer flex items-center justify-center ${isLight
+              ? 'bg-slate-100 hover:bg-slate-200/80 text-slate-700 border-slate-200 shadow-sm'
+              : 'bg-slate-900 hover:bg-slate-850 text-slate-300 border-slate-800 shadow-md'
+              }`}
+            title="GitHub Repository"
+            data-testid="github-link"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="w-4.5 h-4.5"
+            >
+              <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4" />
+              <path d="M9 18c-4.51 2-5-2-7-2" />
+            </svg>
+          </a>
+
           <button
             onClick={() => setTheme(isLight ? 'dark' : 'light')}
             className={`p-2 rounded-xl border transition-all active:scale-95 cursor-pointer ${isLight
@@ -415,37 +399,6 @@ export default function App() {
             onReset={() => handleLoadPreset('workflow')}
             theme={theme}
           />
-
-
-          {/* Conditional Floating Node Edit Properties Modal */}
-          <Suspense fallback={null}>
-            {editingNode && (
-              <EditNodeModal
-                key={editingNode.id}
-                node={editingNode}
-                onLabelChange={handleNodeLabelChange}
-                onShapeChange={handleNodeShapeChange}
-                onDelete={handleDeleteNode}
-                onClose={handleCloseNodeModal}
-                isLight={isLight}
-              />
-            )}
-          </Suspense>
-
-          {/* Conditional Floating Edge Edit Properties Modal */}
-          <Suspense fallback={null}>
-            {editingEdge && (
-              <EditEdgeModal
-                key={`${editingEdge.sourceId}-${editingEdge.targetId}`}
-                edge={editingEdge}
-                onLabelChange={handleEdgeLabelChange}
-                onStyleChange={handleEdgeStyleChange}
-                onDelete={handleDeleteConnection}
-                onClose={handleCloseEdgeModal}
-                isLight={isLight}
-              />
-            )}
-          </Suspense>
         </div>
 
         {/* Visual Preview Canvas Area (Right Pane) */}
@@ -454,16 +407,22 @@ export default function App() {
             code={debouncedCode}
             onError={setError}
             onEditNode={setEditingNode}
+            activeNode={editingNode}
+            onNodeLabelChange={handleNodeLabelChange}
+            onNodeShapeChange={handleNodeShapeChange}
             onDeleteNode={handleDeleteNodeById}
             onAddNodeClick={handleAddNode}
             onNodesParsed={handleNodesParsed}
-            onEditEdge={setEditingEdge}
             onDeleteEdge={handleDeleteConnectionByEnds}
+            onEdgeLabelChange={handleEdgeLabelChangeInline}
+            onEdgeStyleChange={handleEdgeStyleChangeInline}
             onConnectNodes={(sourceId, targetId) => {
               const updatedCode = addNodeConnection(code, sourceId, targetId, '-->', '');
               updateCode(updatedCode, true);
             }}
             onConnectNewNode={handleConnectNewNode}
+            newNodeIdToEdit={newNodeIdToEdit}
+            onClearNewNodeIdToEdit={() => setNewNodeIdToEdit(null)}
             theme={theme}
           />
         </div>

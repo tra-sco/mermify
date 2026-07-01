@@ -13,6 +13,7 @@ import {
   extractNodeId,
   extractEdgeIds,
   getElementMidpoint,
+  getPathMidpoint,
   findClosestElement,
 } from '../utils/svgParser';
 import { exportSVG, processPNGAction } from '../utils/exportUtils';
@@ -21,15 +22,21 @@ import { PRESETS } from '../constants/presets';
 interface PreviewProps {
   code: string;
   onError: (error: string | null) => void;
-  onEditNode: (node: OverlayNode) => void;
+  onEditNode: (node: OverlayNode | null) => void;
   onDeleteNode?: (nodeId: string) => void;
   onAddNodeClick: () => void;
   onNodesParsed?: (nodes: OverlayNode[]) => void;
-  onEditEdge: (edge: OverlayEdge) => void;
   onDeleteEdge?: (sourceId: string, targetId: string) => void;
+  onEdgeLabelChange?: (sourceId: string, targetId: string, newLabel: string) => void;
+  onEdgeStyleChange?: (sourceId: string, targetId: string, newStyle: string, currentLabel: string) => void;
   onConnectNodes?: (sourceId: string, targetId: string) => void;
   onConnectNewNode?: (sourceId: string) => void;
   theme?: 'light' | 'dark';
+  activeNode?: OverlayNode | null;
+  onNodeLabelChange?: (nodeId: string, newLabel: string) => void;
+  onNodeShapeChange?: (nodeId: string, newShapeId: string) => void;
+  newNodeIdToEdit?: string | null;
+  onClearNewNodeIdToEdit?: () => void;
 }
 
 export interface OverlayNode {
@@ -54,6 +61,39 @@ export interface OverlayEdge {
   style: string;
 }
 
+function addHoverTargetsToSvg(svgHtml: string): string {
+  if (typeof window === 'undefined') return svgHtml;
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(svgHtml, 'image/svg+xml');
+    const links = doc.querySelectorAll('.flowchart-link');
+    links.forEach((link) => {
+      const hoverTarget = link.cloneNode(true) as SVGElement;
+      hoverTarget.classList.remove('flowchart-link');
+      hoverTarget.classList.add('flowchart-link-hover-target');
+      
+      if (hoverTarget.id) {
+        hoverTarget.id = `${hoverTarget.id}-hover-target`;
+      }
+      
+      hoverTarget.setAttribute('stroke', 'transparent');
+      hoverTarget.setAttribute('stroke-width', '16');
+      hoverTarget.setAttribute('fill', 'none');
+      hoverTarget.setAttribute(
+        'style',
+        'cursor: pointer; pointer-events: stroke; fill: none; stroke: transparent !important; stroke-width: 16px !important;'
+      );
+      
+      link.parentNode?.insertBefore(hoverTarget, link);
+    });
+    const serializer = new XMLSerializer();
+    return serializer.serializeToString(doc);
+  } catch (err) {
+    console.error('Failed to inject hover targets to SVG:', err);
+    return svgHtml;
+  }
+}
+
 export function Preview({
   code,
   onError,
@@ -61,20 +101,87 @@ export function Preview({
   onDeleteNode,
   onAddNodeClick,
   onNodesParsed,
-  onEditEdge,
   onDeleteEdge,
+  onEdgeLabelChange,
+  onEdgeStyleChange,
   onConnectNodes,
   onConnectNewNode,
   theme = 'dark',
+  activeNode = null,
+  onNodeLabelChange,
+  onNodeShapeChange,
+  newNodeIdToEdit,
+  onClearNewNodeIdToEdit,
 }: PreviewProps) {
   const [svgContent, setSvgContent] = useState<string>('');
   const [overlayNodes, setOverlayNodes] = useState<OverlayNode[]>([]);
   const [overlayEdges, setOverlayEdges] = useState<OverlayEdge[]>([]);
 
+  const [editingNodeIdInline, setEditingNodeIdInline] = useState<string | null>(null);
+  const [prevActiveNodeId, setPrevActiveNodeId] = useState<string | null>(null);
+
+  // Edge selection & inline editing state
+  const [activeEdge, setActiveEdge] = useState<OverlayEdge | null>(null);
+  const [editingEdgeInline, setEditingEdgeInline] = useState<string | null>(null);
+  // Used to detect double-click on edges (two clicks within 300ms on same edge key)
+  const lastEdgeClickRef = useRef<{ key: string; time: number } | null>(null);
+
+  // Stable edge click handler — called from EdgeOverlay's inner hit area (label/midpoint)
+  // AND from handleCanvasClick for SVG path line clicks.
+  const handleEdgeClick = useCallback((edge: OverlayEdge) => {
+    const edgeKey = `${edge.sourceId}->${edge.targetId}`;
+    const now = Date.now();
+    const last = lastEdgeClickRef.current;
+    if (last && last.key === edgeKey && now - last.time < 300) {
+      // Two rapid clicks = double-click: enter inline edit
+      lastEdgeClickRef.current = null;
+      setActiveEdge(edge);
+      setEditingEdgeInline(edgeKey);
+    } else {
+      lastEdgeClickRef.current = { key: edgeKey, time: now };
+      setActiveEdge(edge);
+      setEditingEdgeInline(null);
+    }
+    onEditNode(null);
+    setEditingNodeIdInline(null);
+  }, [onEditNode]);
+
+  const handleEdgeDoubleClick = useCallback((edge: OverlayEdge) => {
+    const edgeKey = `${edge.sourceId}->${edge.targetId}`;
+    lastEdgeClickRef.current = null;
+    setActiveEdge(edge);
+    setEditingEdgeInline(edgeKey);
+    onEditNode(null);
+    setEditingNodeIdInline(null);
+  }, [onEditNode]);
+
+  const activeId = activeNode?.id ?? null;
+  if (activeId !== prevActiveNodeId) {
+    setPrevActiveNodeId(activeId);
+    if (activeId && activeId === newNodeIdToEdit) {
+      setEditingNodeIdInline(activeId);
+    } else {
+      setEditingNodeIdInline(null);
+    }
+  }
+
+  useEffect(() => {
+    if (activeNode) {
+      setActiveEdge(null);
+      setEditingEdgeInline(null);
+    }
+  }, [activeNode]);
+
+  useEffect(() => {
+    if (activeId && activeId === newNodeIdToEdit) {
+      onClearNewNodeIdToEdit?.();
+    }
+  }, [activeId, newNodeIdToEdit, onClearNewNodeIdToEdit]);
+
   const [hoveredEdgeKey, setHoveredEdgeKey] = useState<string | null>(null);
   const hoverTimeoutRef = useRef<number | null>(null);
 
-  const [showGuides, setShowGuides] = useState(false);
+  const [showGuides, setShowGuides] = useState(true);
 
   const handleMouseEnterEdge = useCallback((key: string) => {
     if (hoverTimeoutRef.current) {
@@ -103,9 +210,10 @@ export function Preview({
 
   const handleMouseOver = (e: React.MouseEvent) => {
     const target = e.target as SVGElement;
-    const linkEl = target.closest('.flowchart-link');
+    const linkEl = target.closest('.flowchart-link') || target.closest('.flowchart-link-hover-target');
     if (linkEl) {
-      const ids = extractEdgeIds(linkEl.id, overlayNodes);
+      const cleanId = linkEl.id.replace(/-hover-target$/, '');
+      const ids = extractEdgeIds(cleanId, overlayNodes);
       if (ids) {
         handleMouseEnterEdge(`${ids.sourceId}->${ids.targetId}`);
       }
@@ -114,7 +222,7 @@ export function Preview({
 
   const handleMouseOut = (e: React.MouseEvent) => {
     const target = e.target as SVGElement;
-    const linkEl = target.closest('.flowchart-link');
+    const linkEl = target.closest('.flowchart-link') || target.closest('.flowchart-link-hover-target');
     if (linkEl) {
       handleMouseLeaveEdge();
     }
@@ -346,7 +454,9 @@ export function Preview({
       if (!ids) return;
       const { sourceId, targetId } = ids;
 
-      const pathMid = getElementMidpoint(pathEl);
+      const pathMid = pathEl instanceof SVGPathElement
+        ? getPathMidpoint(pathEl)
+        : getElementMidpoint(pathEl);
       const closestLabel = findClosestElement(pathMid, labelElements);
       const hasLabel = closestLabel.element !== null && closestLabel.distance < 60;
       const edgeLabel = hasLabel && closestLabel.element ? closestLabel.element.textContent?.trim() || '' : '';
@@ -401,7 +511,8 @@ export function Preview({
       try {
         const { svg } = await mermaid.render(renderId, code);
         if (isMounted) {
-          setSvgContent(svg);
+          const processedSvg = addHoverTargetsToSvg(svg);
+          setSvgContent(processedSvg);
           onError(null);
         }
       } catch (err: unknown) {
@@ -453,6 +564,7 @@ export function Preview({
     }
   }, [svgContent, overlayNodes.length, code, fitToScreen]);
 
+
   // Recalculate overlays on resize
   useEffect(() => {
     const handleResize = () => {
@@ -462,41 +574,53 @@ export function Preview({
     return () => window.removeEventListener('resize', handleResize);
   }, [svgContent, calculateOverlayPositions]);
 
-  // Click handler directly on visual SVG nodes/connectors
+  // Resolve an edge from an SVG path or label element click
+  const resolveEdgeFromClick = (target: SVGElement): OverlayEdge | null => {
+    const edgePathEl = target.closest('.flowchart-link') || target.closest('.flowchart-link-hover-target');
+    const edgeLabelEl = target.closest('.edgeLabel');
+
+    if (edgePathEl) {
+      const cleanId = (edgePathEl as Element).id.replace(/-hover-target$/, '');
+      const ids = extractEdgeIds(cleanId, overlayNodes);
+      if (ids) {
+        return overlayEdges.find((eg) => eg.sourceId === ids.sourceId && eg.targetId === ids.targetId) ?? null;
+      }
+    } else if (edgeLabelEl) {
+      const labelMid = getElementMidpoint(edgeLabelEl as Element);
+      const paths = Array.from(viewportRef.current?.querySelectorAll('.flowchart-link') || []);
+      const closestPath = findClosestElement(labelMid, paths);
+      if (closestPath.element && closestPath.distance < 60) {
+        const ids = extractEdgeIds(closestPath.element.id, overlayNodes);
+        if (ids) {
+          return overlayEdges.find((eg) => eg.sourceId === ids.sourceId && eg.targetId === ids.targetId) ?? null;
+        }
+      }
+    }
+    return null;
+  };
+
+  // SVG layer click — handles edge path clicks before the event reaches handleCanvasClick.
+  // NodeOverlay hit areas have stopPropagation so they never reach here; this catches
+  // clicks on connection lines that fall in open canvas space (not under any node bbox).
+  // NOTE: clicks on lines that pass *under* a node overlay bbox are still swallowed by
+  // NodeOverlay.handleSingleClick — see backlog.md (Option D) for the follow-up fix.
+  const handleSvgLayerClick = (e: React.MouseEvent) => {
+    if (hasDraggedRef.current) return; // ignore click tail of a pan gesture
+    const target = e.target as SVGElement;
+    const clickedEdge = resolveEdgeFromClick(target);
+    if (clickedEdge) {
+      handleEdgeClick(clickedEdge);
+      e.stopPropagation(); // prevent handleCanvasClick from firing a second time
+    }
+    // Non-edge SVG clicks (e.g. empty SVG background) bubble up to handleCanvasClick.
+  };
+
+  // Click handler for the canvas container — handles node clicks and canvas deselection.
+  // Edge clicks that hit an SVG path in open space are caught by handleSvgLayerClick first.
   const handleCanvasClick = (e: React.MouseEvent) => {
     if (hasDraggedRef.current) return;
 
     const target = e.target as SVGElement;
-    const edgePathEl = target.closest('.flowchart-link');
-    const edgeLabelEl = target.closest('.edgeLabel');
-
-    if (edgePathEl) {
-      const ids = extractEdgeIds(edgePathEl.id, overlayNodes);
-      if (ids) {
-        const edge = overlayEdges.find((eg) => eg.sourceId === ids.sourceId && eg.targetId === ids.targetId);
-        if (edge) {
-          onEditEdge(edge);
-          e.stopPropagation();
-          return;
-        }
-      }
-    } else if (edgeLabelEl) {
-      const labelMid = getElementMidpoint(edgeLabelEl);
-      const paths = Array.from(viewportRef.current?.querySelectorAll('.flowchart-link') || []);
-      const closestPath = findClosestElement(labelMid, paths);
-
-      if (closestPath.element && closestPath.distance < 60) {
-        const ids = extractEdgeIds(closestPath.element.id, overlayNodes);
-        if (ids) {
-          const edge = overlayEdges.find((eg) => eg.sourceId === ids.sourceId && eg.targetId === ids.targetId);
-          if (edge) {
-            onEditEdge(edge);
-            e.stopPropagation();
-            return;
-          }
-        }
-      }
-    }
 
     const nodeEl = target.closest('.node');
     if (nodeEl) {
@@ -505,10 +629,18 @@ export function Preview({
       const node = overlayNodes.find((n) => n.id === nodeId);
       if (node) {
         onEditNode(node);
+        setActiveEdge(null);
+        setEditingEdgeInline(null);
         e.stopPropagation();
         return;
       }
     }
+
+    // Clicked empty canvas space — deselect everything
+    onEditNode(null);
+    setEditingNodeIdInline(null);
+    setActiveEdge(null);
+    setEditingEdgeInline(null);
   };
 
   const hasContent = svgContent && overlayNodes.length > 0;
@@ -551,6 +683,7 @@ export function Preview({
         id="canvas-container"
         ref={containerRef}
         {...canvasHandlers}
+        onClick={handleCanvasClick}
         className={`flex-1 overflow-hidden bg-grid-pattern relative transition-all duration-300 ${
           isLight ? 'bg-slate-50' : 'bg-slate-950'
         } ${
@@ -573,13 +706,13 @@ export function Preview({
           }}
           className="absolute inset-0 w-full h-full pointer-events-none"
         >
-          {/* LAYER A: SVG layer */}
+          {/* LAYER A: SVG layer — owns edge-path click resolution via handleSvgLayerClick */}
           {svgContent && (
             <div
               className="absolute inset-0 pointer-events-auto select-none"
-              onClick={handleCanvasClick}
               onMouseOver={handleMouseOver}
               onMouseOut={handleMouseOut}
+              onClick={handleSvgLayerClick}
               dangerouslySetInnerHTML={{ __html: svgContent }}
             />
           )}
@@ -598,6 +731,12 @@ export function Preview({
                   onSocketPointerMove={handleSocketPointerMove}
                   onSocketPointerUp={handleSocketPointerUp}
                   isLight={isLight}
+                  activeNode={activeNode}
+                  editingNodeIdInline={editingNodeIdInline}
+                  setEditingNodeIdInline={setEditingNodeIdInline}
+                  onNodeLabelChange={onNodeLabelChange}
+                  onNodeShapeChange={onNodeShapeChange}
+                  zoom={zoom}
                 />
               ))}
 
@@ -617,10 +756,17 @@ export function Preview({
                   isHovered={hoveredEdgeKey === `${edge.sourceId}->${edge.targetId}`}
                   onMouseEnterEdge={handleMouseEnterEdge}
                   onMouseLeaveEdge={handleMouseLeaveEdge}
-                  onEditEdge={onEditEdge}
                   onDeleteEdge={onDeleteEdge}
                   showGuides={showGuides}
                   isLight={isLight}
+                  activeEdge={activeEdge}
+                  editingEdgeInline={editingEdgeInline}
+                  setEditingEdgeInline={setEditingEdgeInline}
+                  onEdgeClick={handleEdgeClick}
+                  onEdgeDoubleClick={handleEdgeDoubleClick}
+                  onEdgeLabelChange={onEdgeLabelChange}
+                  onEdgeStyleChange={onEdgeStyleChange}
+                  zoom={zoom}
                 />
               ))}
 
@@ -662,9 +808,7 @@ export function Preview({
           <button
             onClick={() => setShowGuides(!showGuides)}
             className={`p-2 rounded-lg transition-colors cursor-pointer ${
-              showGuides
-                ? 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100'
-                : isLight
+              isLight
                 ? 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
             }`}

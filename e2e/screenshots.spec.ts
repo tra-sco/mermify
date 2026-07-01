@@ -38,12 +38,13 @@ test.describe('Generate Screenshots for Documentation', () => {
     // 2. Add Node click
     const addNodeBtn = page.getByRole('button', { name: 'Add Node' });
     await addNodeBtn.click();
-    await expect(page.locator('text=Node Properties')).toBeVisible();
+    const input = page.locator('[data-testid="node-overlay-N1"] input');
+    await expect(input).toBeVisible();
     await page.screenshot({ path: path.join(screenshotsDir, 'add-node-modal.png') });
 
-    // Close the modal
-    await page.getByRole('button', { name: 'Close' }).click();
-    await expect(page.locator('text=Node Properties')).not.toBeVisible();
+    // Close inline editing
+    await page.keyboard.press('Escape');
+    await expect(input).not.toBeVisible();
 
     // Clear and start with simpler diagram for clear screenshots
     const editor = page.locator('.monaco-editor .view-lines').first();
@@ -70,16 +71,22 @@ test.describe('Generate Screenshots for Documentation', () => {
       await page.mouse.up();
     }
 
-    // Modal should auto-open for new Node N2
-    await expect(page.locator('text=Editing: Node N2')).toBeVisible();
+    // Input should auto-open for N2
+    const inputN2 = page.locator('[data-testid="node-overlay-N2"] input');
+    await expect(inputN2).toBeVisible();
+    await page.keyboard.press('Escape');
+
+    // Click N2 to open the command bar palette
+    await page.getByTestId('node-overlay-click-N2').click();
+    await expect(page.getByRole('button', { name: 'Shape' })).toBeVisible();
     await page.screenshot({ path: path.join(screenshotsDir, 'node-properties-modal.png') });
-    await page.getByRole('button', { name: 'Close' }).click();
 
     // 4. Drag to Connect two nodes
     // Let's create N3 standalone first
     await addNodeBtn.click();
-    await expect(page.locator('text=Node Properties')).toBeVisible();
-    await page.getByRole('button', { name: 'Close' }).click();
+    const inputN3 = page.locator('[data-testid="node-overlay-N3"] input');
+    await expect(inputN3).toBeVisible();
+    await page.keyboard.press('Escape');
 
     // Drag connection from N2 to N3
     const socketN2 = page.getByTestId('node-drag-socket-N2');
@@ -99,17 +106,18 @@ test.describe('Generate Screenshots for Documentation', () => {
     await expect(edgeOverlay).toBeVisible();
     await page.screenshot({ path: path.join(screenshotsDir, 'drag-connected-nodes.png') });
 
-    // 5. Click edge to enter edit modal
-    await edgeOverlay.hover();
-    const editEdgeBtn = page.getByTestId('edge-edit-btn-N2-N3');
-    await editEdgeBtn.click();
-    await expect(page.locator('text=Link Properties')).toBeVisible();
+    // 5. Click edge to show floating command bar and open style popover
+    const edgeClickArea = page.getByTestId('edge-overlay-click-N2-N3');
+    await edgeClickArea.click();
+    await page.getByRole('button', { name: 'Style' }).click();
+    await expect(page.locator('text=Link Style')).toBeVisible();
     await page.screenshot({ path: path.join(screenshotsDir, 'link-properties-modal.png') });
-    await page.getByRole('button', { name: 'Close' }).click();
+    // Click Style button again to close popover
+    await page.getByRole('button', { name: 'Style' }).click();
 
-    // 6. Hover to show delete buttons
-    const nodeOverlayN3 = page.getByTestId('node-overlay-N3');
-    await nodeOverlayN3.hover();
+    // 6. Click node to show command palette (including Delete command)
+    await page.getByTestId('node-overlay-click-N3').click();
+    await expect(page.getByTestId('node-overlay-N3').getByRole('button', { name: 'Delete' })).toBeVisible();
     await page.screenshot({ path: path.join(screenshotsDir, 'delete-button-hover.png') });
 
     // 7. Share Link action

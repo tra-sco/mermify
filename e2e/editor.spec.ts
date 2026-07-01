@@ -86,20 +86,22 @@ test.describe('Mermify Diagram Hybrid Editor', () => {
     await expect(page.locator('span:has-text("nodes detected")')).toContainText('2 nodes detected');
   });
 
-  test('should open Edit Node modal and update node properties', async ({ page }) => {
+  test('should edit node label inline and trigger shape changing via command bar', async ({ page }) => {
     // Wait for the diagram to fully render first
     await expect(page.locator('span:has-text("nodes detected")')).toContainText('9 nodes detected');
 
-    // Click on overlay of node 'Start' (which has label 'User Registration')
+    // 1. Single click should show command bar
     const startNodeOverlay = page.getByTestId('node-overlay-click-Start');
     await startNodeOverlay.click();
+    await expect(page.getByRole('button', { name: 'Shape' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Delete' })).toBeVisible();
 
-    // Verify modal is visible and displays properties
-    await expect(page.locator('text=Node Properties')).toBeVisible();
-    await expect(page.locator('text=Editing: Node Start')).toBeVisible();
+    // 2. Double click should trigger inline editing
+    await startNodeOverlay.dblclick();
 
-    // Verify label value matches initial state
-    const input = page.getByPlaceholder('Enter label text...');
+    // Locate the input inside node overlay
+    const input = page.locator('[data-testid="node-overlay-Start"] input');
+    await expect(input).toBeVisible();
     await expect(input).toHaveValue('User Registration');
 
     // Change node label
@@ -107,12 +109,20 @@ test.describe('Mermify Diagram Hybrid Editor', () => {
     await page.keyboard.press('ControlOrMeta+A');
     await page.keyboard.press('Delete');
     await page.keyboard.type('User Starts Application');
+    await page.keyboard.press('Enter');
 
-    // Verify node update is reflected in the overlay (should not shake/error unless empty)
-    await expect(page.locator('text=Node Properties')).toBeVisible();
+    // Verify label is updated and input is closed
+    await expect(input).not.toBeVisible();
 
-    // Close Modal
-    await page.getByRole('button', { name: 'Close' }).click();
-    await expect(page.locator('text=Node Properties')).not.toBeVisible();
+    // Verify code updated
+    const editor = page.locator('.monaco-editor .view-lines').first();
+    await expect(editor).toContainText('User Starts Application');
+  });
+
+  test('should have a working GitHub link that points to the correct repository', async ({ page }) => {
+    const githubLink = page.getByTestId('github-link');
+    await expect(githubLink).toBeVisible();
+    await expect(githubLink).toHaveAttribute('href', 'https://github.com/tra-sco/mermify');
+    await expect(githubLink).toHaveAttribute('target', '_blank');
   });
 });

@@ -127,7 +127,8 @@ body {
   transition: stroke 0.2s, stroke-width 0.2s, filter 0.2s;
 }
 
-.flowchart-link:hover {
+.flowchart-link:hover,
+.flowchart-link-hover-target:hover + .flowchart-link {
   stroke: #818cf8 !important; /* Indigo 400 */
   stroke-width: 3.5px !important;
   filter: drop-shadow(0 0 4px rgba(99, 102, 241, 0.5));
@@ -189,7 +190,8 @@ body {
 }
 
 /* Light mode edge path hover overrides */
-.theme-light .flowchart-link:hover {
+.theme-light .flowchart-link:hover,
+.theme-light .flowchart-link-hover-target:hover + .flowchart-link {
   stroke: #4f46e5 !important;
   filter: drop-shadow(0 0 4px rgba(99, 102, 241, 0.25));
 }

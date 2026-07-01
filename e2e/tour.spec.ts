@@ -45,8 +45,8 @@ test.describe('Mermify Getting Started Tour', () => {
     // Click Next
     await page.getByRole('button', { name: 'Next' }).click();
 
-    // Step 6: Click Node or Edge to Edit (with animation)
-    await expect(page.locator('h2:has-text("Click Node or Edge to Edit")')).toBeVisible();
+    // Step 6: Double-Click or Click to Edit (with animation)
+    await expect(page.locator('h2:has-text("Double-Click or Click to Edit")')).toBeVisible();
     await expect(page.locator('text=Step 6 of 7')).toBeVisible();
 
     // Click Next

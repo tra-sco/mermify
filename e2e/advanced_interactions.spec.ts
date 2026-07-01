@@ -48,9 +48,9 @@ test.describe('Advanced Mermify Editor Interactions', () => {
     // 2. Adds a node with clicking the addnode button (verify node is created in code)
     await page.getByTitle('Add Standalone Node').click();
 
-    // Verify modal is visible
-    await expect(page.locator('text=Node Properties')).toBeVisible();
-    await expect(page.locator('text=Editing: Node N1')).toBeVisible();
+    // Verify inline input is visible automatically since label starts with 'Node '
+    const input = page.locator('[data-testid="node-overlay-N1"] input');
+    await expect(input).toBeVisible();
 
     // Verify node is created in code
     await verifyEditorCode(page, [
@@ -58,20 +58,25 @@ test.describe('Advanced Mermify Editor Interactions', () => {
       'N1[Node 1]'
     ]);
 
-    // 3. Delete the label (the cursor is in the label field automatically) by performing select all and del hit enter
-    const input = page.getByPlaceholder('Enter label text...');
+    // 3. Delete the label by performing select all and del, then hit enter (should rollback to 'Node 1')
     await input.focus();
     await page.keyboard.press('ControlOrMeta+A');
     await page.keyboard.press('Delete');
     await page.keyboard.press('Enter');
 
-    // Error should be shown as this is not allowed
-    await expect(page.locator('text=Node label cannot be empty.')).toBeVisible();
+    // Input should be closed and label remains 'Node 1'
+    await expect(input).not.toBeVisible();
+    await verifyEditorCode(page, [
+      'flowchart TD',
+      'N1[Node 1]'
+    ]);
 
-    // 4. Continue giving a label and hitting enter (verify changes were performed as expected also the node modal should be closed)
+    // 4. Double click N1 click interceptor to enter edit mode, type 'Root Node' and hit enter
+    await page.getByTestId('node-overlay-click-N1').dblclick();
+    await expect(input).toBeVisible();
     await page.keyboard.type('Root Node');
     await page.keyboard.press('Enter');
-    await expect(page.locator('text=Node Properties')).not.toBeVisible();
+    await expect(input).not.toBeVisible();
 
     // Verify code has updated with label
     await verifyEditorCode(page, [
@@ -81,6 +86,7 @@ test.describe('Advanced Mermify Editor Interactions', () => {
 
     // Verify node is created in code with updated label (1 node detected in UI status bar)
     await expect(page.locator('span:has-text("nodes detected")')).toContainText('1 nodes detected');
+    await page.mouse.click(1200, 200); // Deselect to clear state
 
     // Reset Zoom & Recenter to 100% to ensure coordinates are predictable
     await page.getByTitle('Reset Zoom & Recenter (100%)').click();
@@ -98,26 +104,33 @@ test.describe('Advanced Mermify Editor Interactions', () => {
       await page.mouse.up();
     }
 
-    // Modal should automatically open for newly created N2
-    await expect(page.locator('text=Editing: Node N2')).toBeVisible();
-    await page.getByRole('button', { name: 'Close' }).click();
-    await expect(page.locator('text=Node Properties')).not.toBeVisible();
+    // Input should automatically open for newly created N2 (label 'Node 2')
+    const inputN2 = page.locator('[data-testid="node-overlay-N2"] input');
+    await expect(inputN2).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(inputN2).not.toBeVisible();
+    await page.mouse.click(1200, 200); // Deselect N2 to avoid layout interference
 
     // 6. Do this again from the first node (N1 to create N3) and from the second node (N2 to create N4)
     // Drag from N1 again
+    await page.waitForTimeout(300); // Let layout settle
     await expect(socketN1).toBeVisible();
     const boxN1_again = await socketN1.boundingBox();
     if (boxN1_again) {
       await page.mouse.move(boxN1_again.x + boxN1_again.width / 2, boxN1_again.y + boxN1_again.height / 2);
       await page.mouse.down();
-      // Move 150px left and 150px down
-      await page.mouse.move(boxN1_again.x + boxN1_again.width / 2 - 150, boxN1_again.y + boxN1_again.height / 2 + 150);
+      // Move 100px left and 150px down (100px left stays inside the canvas viewport)
+      await page.mouse.move(boxN1_again.x + boxN1_again.width / 2 - 100, boxN1_again.y + boxN1_again.height / 2 + 150);
       await page.mouse.up();
     }
-    await expect(page.locator('text=Editing: Node N3')).toBeVisible();
-    await page.getByRole('button', { name: 'Close' }).click();
+    const inputN3 = page.locator('[data-testid="node-overlay-N3"] input');
+    await expect(inputN3).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(inputN3).not.toBeVisible();
+    await page.mouse.click(1200, 200); // Deselect N3
 
     // Drag from N2
+    await page.waitForTimeout(300); // Let layout settle
     const socketN2 = page.getByTestId('node-drag-socket-N2');
     await expect(socketN2).toBeVisible();
     const boxN2 = await socketN2.boundingBox();
@@ -128,8 +141,11 @@ test.describe('Advanced Mermify Editor Interactions', () => {
       await page.mouse.move(boxN2.x + boxN2.width / 2 + 150, boxN2.y + boxN2.height / 2 + 200);
       await page.mouse.up();
     }
-    await expect(page.locator('text=Editing: Node N4')).toBeVisible();
-    await page.getByRole('button', { name: 'Close' }).click();
+    const inputN4 = page.locator('[data-testid="node-overlay-N4"] input');
+    await expect(inputN4).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(inputN4).not.toBeVisible();
+    await page.mouse.click(1200, 200); // Deselect N4
 
     // Verify nodes count is 4
     await expect(page.locator('span:has-text("nodes detected")')).toContainText('4 nodes detected');
@@ -143,12 +159,9 @@ test.describe('Advanced Mermify Editor Interactions', () => {
       'N2 --> N4[Node 4]'
     ]);
 
-    // 7. Delete the second node (N2) with the delete button on the nodes top right corner
-    // Hover over overlay to expose buttons
-    const nodeOverlayN2 = page.getByTestId('node-overlay-N2');
-    await nodeOverlayN2.hover();
-    const deleteN2 = page.getByTestId('node-delete-btn-N2');
-    await deleteN2.click();
+    // 7. Delete the second node (N2) using the Delete action in the floating command bar
+    await page.getByTestId('node-overlay-click-N2').click();
+    await page.getByTestId('node-overlay-N2').getByRole('button', { name: 'Delete' }).click();
 
     // Verify the nodes count drops to 3
     await expect(page.locator('span:has-text("nodes detected")')).toContainText('3 nodes detected');
@@ -239,23 +252,21 @@ test.describe('Advanced Mermify Editor Interactions', () => {
       'N1 --> N2'
     ]);
 
-    // 3. Click edit on the edge and change the label, then verify
-    // Hover on edgeOverlay to trigger hover state, making buttons visible/clickable
-    await edgeOverlay.hover();
-    const editEdgeBtn = page.getByTestId('edge-edit-btn-N1-N2');
-    await editEdgeBtn.click();
+    // 3. Double-click the edge to enter inline editing and change the label
+    const edgeClickArea = page.getByTestId('edge-overlay-click-N1-N2');
+    await edgeClickArea.dblclick();
 
-    // Verify edge modal is open
-    await expect(page.locator('text=Link Properties')).toBeVisible();
+    // Locate the inline input inside edge overlay
+    const edgeInput = page.locator('[data-testid="edge-overlay-N1-N2"] input');
+    await expect(edgeInput).toBeVisible();
 
     // Fill edge label
-    const labelInput = page.getByPlaceholder('No label (e.g. Yes, No, HTTPS)');
-    await labelInput.focus();
+    await edgeInput.focus();
     await page.keyboard.type('Test Link');
     await page.keyboard.press('Enter');
 
-    // Check that link label is updated
-    await expect(page.locator('text=Link Properties')).not.toBeVisible();
+    // Check that inline input is closed
+    await expect(edgeInput).not.toBeVisible();
     await expect(page.getByTestId('edge-overlay-N1-N2')).toBeVisible();
 
     // Verify the edge update in code
@@ -276,9 +287,9 @@ test.describe('Advanced Mermify Editor Interactions', () => {
     ]);
 
     // 4. Delete the existing edge and verify the result
-    await edgeOverlay.hover();
-    const deleteEdgeBtn = page.getByTestId('edge-delete-btn-N1-N2');
-    await deleteEdgeBtn.click();
+    // Click edge overlay to select it and show the floating command palette
+    await edgeClickArea.click();
+    await page.getByTestId('edge-overlay-N1-N2').getByRole('button', { name: 'Delete' }).click();
 
     // Verify the edge overlay is no longer visible
     await expect(page.getByTestId('edge-overlay-N1-N2')).not.toBeVisible();
@@ -298,6 +309,71 @@ test.describe('Advanced Mermify Editor Interactions', () => {
       'N10[/Parallelogram/]',
       'N11[\\Parallelogram Alt\\]'
     ]);
+  });
+
+  test('should support click-to-connect node creation from the connection socket', async ({ page }) => {
+    await page.evaluate(() => {
+      (window as any).monaco.editor.getModels()[0].setValue('flowchart TD\nN1[Node 1]');
+    });
+
+    await verifyEditorCode(page, [
+      'flowchart TD',
+      'N1[Node 1]'
+    ]);
+
+    await page.getByTitle('Reset Zoom & Recenter (100%)').click();
+
+    const socketN1 = page.getByTestId('node-drag-socket-N1');
+    await expect(socketN1).toBeVisible();
+
+    await socketN1.click();
+
+    const inputN2 = page.locator('[data-testid="node-overlay-N2"] input');
+    await expect(inputN2).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(inputN2).not.toBeVisible();
+
+    await verifyEditorCode(page, [
+      'flowchart TD',
+      'N1[Node 1]',
+      'N1 --> N2[Node 2]'
+    ]);
+  });
+
+  test('should ensure only one command palette is shown at a time', async ({ page }) => {
+    await page.evaluate(() => {
+      (window as any).monaco.editor.getModels()[0].setValue('flowchart TD\nN1[Node 1] --> N2[Node 2]');
+    });
+
+    await page.getByTitle('Reset Zoom & Recenter (100%)').click();
+
+    // Click Node 1 overlay to show its command palette
+    const nodeOverlayN1 = page.getByTestId('node-overlay-click-N1');
+    await nodeOverlayN1.click();
+    const nodeDeleteBtn = page.getByTestId('node-overlay-N1').getByRole('button', { name: 'Delete' });
+    await expect(nodeDeleteBtn).toBeVisible();
+
+    // Click edge overlay to show its command palette
+    const edgeClickArea = page.getByTestId('edge-overlay-click-N1-N2');
+    await edgeClickArea.click();
+
+    // Edge delete button should be visible
+    const edgeDeleteBtn = page.getByTestId('edge-overlay-N1-N2').getByRole('button', { name: 'Delete' });
+    await expect(edgeDeleteBtn).toBeVisible();
+
+    // Node 1 delete button should NOT be visible
+    await expect(nodeDeleteBtn).not.toBeVisible();
+
+    // Click Node 2 overlay to show its command palette
+    const nodeOverlayN2 = page.getByTestId('node-overlay-click-N2');
+    await nodeOverlayN2.click();
+
+    // Node 2 delete button should be visible
+    const nodeDeleteBtnN2 = page.getByTestId('node-overlay-N2').getByRole('button', { name: 'Delete' });
+    await expect(nodeDeleteBtnN2).toBeVisible();
+
+    // Edge delete button should NOT be visible
+    await expect(edgeDeleteBtn).not.toBeVisible();
   });
 });
 

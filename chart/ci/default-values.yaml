@@ -1,0 +1,3 @@
+# chart-testing overlay: exercises defaults plus a resolvable image tag.
+image:
+  tag: latest

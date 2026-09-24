@@ -1,0 +1,15 @@
+{{- if not .Values.nginx.existingConfigMap }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "mermify.configMapName" . }}
+  labels:
+    {{- include "mermify.labels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+data:
+  default.conf: |
+    {{- .Values.nginx.config | nindent 4 }}
+{{- end }}

@@ -1,0 +1,13 @@
+# chart-testing overlay: exercises the Gateway API HTTPRoute template.
+image:
+  tag: latest
+httpRoute:
+  enabled: true
+  parentRefs:
+    - name: mermify-ct-gateway
+  hostnames:
+    - mermify.ct.example.com
+autoscaling:
+  enabled: true
+podDisruptionBudget:
+  enabled: true

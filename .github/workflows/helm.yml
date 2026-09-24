@@ -1,0 +1,86 @@
+name: helm
+
+on:
+  pull_request:
+    paths:
+      - 'chart/**'
+      - 'ct.yaml'
+  push:
+    branches: [main]
+    paths:
+      - 'chart/**'
+      - 'ct.yaml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: helm-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v5
+        with:
+          version: v3.21.4
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+          check-latest: true
+
+      - name: Set up chart-testing
+        uses: helm/chart-testing-action@v2
+
+      - name: Run chart-testing (lint)
+        run: ct lint --config ct.yaml
+
+  release:
+    name: Publish to GHCR
+    needs: lint
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v5
+        with:
+          version: v3.21.4
+
+      - name: Check whether this chart version is already published
+        id: check
+        run: |
+          version="$(yq -r '.version' chart/Chart.yaml)"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if helm show chart "oci://ghcr.io/tra-sco/charts/mermify" --version "$version" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Log in to GHCR
+        if: steps.check.outputs.exists == 'false'
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Package chart
+        if: steps.check.outputs.exists == 'false'
+        run: helm package chart/ --version "${{ steps.check.outputs.version }}"
+
+      - name: Push chart to GHCR
+        if: steps.check.outputs.exists == 'false'
+        run: helm push "mermify-${{ steps.check.outputs.version }}.tgz" oci://ghcr.io/tra-sco/charts

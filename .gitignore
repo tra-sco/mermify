@@ -32,3 +32,7 @@ test-results/
 
 # License compliance reports
 license-report.md
+
+# Packaged Helm chart artifacts
+chart/*.tgz
+chart/charts/

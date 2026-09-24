@@ -76,6 +76,25 @@ Open your browser to `http://localhost:8002/docs/`.
 
 ---
 
+## 🐳 Self-Hosting
+
+Mermify also ships as a container image and Helm chart, published on every push to `main`.
+
+### Docker
+
+```bash
+docker run --rm -p 8080:8080 ghcr.io/tra-sco/mermify:latest
+```
+
+### Helm
+
+```bash
+helm install mermify oci://ghcr.io/tra-sco/charts/mermify --version <x.y.z>
+```
+
+See [`chart/README.md`](chart/README.md) for configuration (ingress, autoscaling, resource
+limits, CSP, etc).
+
 ## 📄 License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.

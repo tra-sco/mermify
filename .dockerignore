@@ -1,0 +1,14 @@
+.git
+.github
+node_modules
+dist
+dist-ssr
+docs/.vitepress/dist
+docs/.vitepress/cache
+playwright-report
+test-results
+license-report.md
+chart
+*.md
+.vscode
+.idea

@@ -1,0 +1,15 @@
+# chart-testing overlay: exercises the legacy networking.k8s.io/v1 Ingress template.
+image:
+  tag: latest
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: mermify.ct.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+autoscaling:
+  enabled: true
+podDisruptionBudget:
+  enabled: true

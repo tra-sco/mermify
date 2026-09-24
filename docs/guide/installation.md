@@ -41,3 +41,24 @@ To run this documentation site locally:
 bun run docs:dev
 ```
 It will automatically trigger Playwright to capture the latest screenshots of the editor and then start VitePress.
+
+---
+
+## Docker / Kubernetes
+
+Mermify also publishes a container image and Helm chart on every push to `main`.
+
+### Docker
+
+```bash
+docker run --rm -p 8080:8080 ghcr.io/tra-sco/mermify:latest
+```
+
+### Helm
+
+```bash
+helm install mermify oci://ghcr.io/tra-sco/charts/mermify --version <x.y.z>
+```
+
+See [`chart/README.md`](https://github.com/tra-sco/mermify/tree/main/chart) for the full
+configuration reference.

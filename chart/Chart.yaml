@@ -1,0 +1,19 @@
+apiVersion: v2
+name: mermify
+description: A Helm chart for Mermify, a visual text-to-diagram hybrid editor for Mermaid.js
+type: application
+version: 0.1.0
+appVersion: "0.3.0"
+home: https://github.com/tra-sco/mermify
+sources:
+  - https://github.com/tra-sco/mermify
+icon: https://raw.githubusercontent.com/tra-sco/mermify/main/public/favicon.svg
+keywords:
+  - mermaid
+  - diagrams
+  - editor
+maintainers:
+  - name: ConnorsApps
+    url: https://github.com/ConnorsApps
+annotations:
+  artifacthub.io/license: MIT
